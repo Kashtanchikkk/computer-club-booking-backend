@@ -24,6 +24,7 @@ dependencies {
     implementation(ktorLibs.server.contentNegotiation)
     implementation(ktorLibs.server.callLogging)
     implementation(ktorLibs.server.config.yaml)
+    implementation(ktorLibs.server.statusPages)
     implementation(ktorLibs.serialization.kotlinx.json)
 
     // Exposed (JDBC)
@@ -35,6 +36,9 @@ dependencies {
     // PostgreSQL + HikariCP
     implementation("org.postgresql:postgresql:42.7.3")
     implementation("com.zaxxer:HikariCP:5.1.0")
+
+    // Password hashing
+    implementation("at.favre.lib:bcrypt:0.10.2")
 
     // Логи
     implementation(libs.logback.classic)
