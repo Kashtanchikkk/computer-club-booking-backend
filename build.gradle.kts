@@ -16,7 +16,6 @@ kotlin {
 }
 
 dependencies {
-    // Ktor
     implementation(ktorLibs.server.core)
     implementation(ktorLibs.server.netty)
     implementation(ktorLibs.server.auth)
@@ -27,20 +26,16 @@ dependencies {
     implementation(ktorLibs.server.statusPages)
     implementation(ktorLibs.serialization.kotlinx.json)
 
-    // Exposed (JDBC)
     implementation("org.jetbrains.exposed:exposed-core:0.50.1")
     implementation("org.jetbrains.exposed:exposed-dao:0.50.1")
     implementation("org.jetbrains.exposed:exposed-jdbc:0.50.1")
     implementation("org.jetbrains.exposed:exposed-java-time:0.50.1")
 
-    // PostgreSQL + HikariCP
     implementation("org.postgresql:postgresql:42.7.3")
     implementation("com.zaxxer:HikariCP:5.1.0")
 
-    // Password hashing
     implementation("at.favre.lib:bcrypt:0.10.2")
 
-    // Логи
     implementation(libs.logback.classic)
 
     testImplementation(kotlin("test"))
