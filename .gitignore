@@ -1,0 +1,11 @@
+.gradle/
+.kotlin/
+build/
+
+*.class
+*.log
+*.db
+*.mv.db
+
+.idea/
+local.properties
