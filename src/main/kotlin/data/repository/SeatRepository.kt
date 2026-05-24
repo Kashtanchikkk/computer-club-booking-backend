@@ -14,14 +14,6 @@ class SeatRepository {
             .map { it.toSeat() }
     }
 
-    fun findById(id: Int): Seat? = transaction {
-        GamingSeatsTable
-            .selectAll()
-            .where { GamingSeatsTable.id eq id }
-            .map { it.toSeat() }
-            .singleOrNull()
-    }
-
     fun findActiveById(id: Int): Seat? = transaction {
         GamingSeatsTable
             .selectAll()
