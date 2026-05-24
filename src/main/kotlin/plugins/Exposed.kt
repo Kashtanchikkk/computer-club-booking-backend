@@ -1,5 +1,8 @@
-package com.example
+package com.example.plugins
 
+import com.example.data.db.BookingsTable
+import com.example.data.db.GamingSeatsTable
+import com.example.data.db.UsersTable
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.application.*
@@ -25,11 +28,7 @@ fun Application.configureExposed() {
     Database.connect(dataSource)
 
     transaction {
-        SchemaUtils.create(
-            UsersTable,
-            GamingSeatsTable,
-            BookingsTable
-        )
+        SchemaUtils.create(UsersTable, GamingSeatsTable, BookingsTable)
     }
 
     log.info("Database connected!")
