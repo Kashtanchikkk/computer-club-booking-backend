@@ -6,6 +6,7 @@ import com.example.domain.error.UnauthorizedException
 import com.example.domain.validation.AuthValidator
 import com.example.presentation.dto.AuthResponse
 import com.example.presentation.dto.LoginRequest
+import com.example.presentation.dto.RefreshTokenRequest
 import com.example.presentation.dto.RegisterRequest
 
 class AuthService(
@@ -28,7 +29,7 @@ class AuthService(
             passwordHash = passwordHasher.hash(request.password),
             name = name
         )
-        return AuthResponse(jwtTokenService.generate(user.id, user.role), user)
+        return authResponse(user)
     }
 
     fun login(request: LoginRequest): AuthResponse {
@@ -42,6 +43,27 @@ class AuthService(
             throw UnauthorizedException("Неверный email или пароль")
         }
 
-        return AuthResponse(jwtTokenService.generate(authData.user.id, authData.user.role), authData.user)
+        return authResponse(authData.user)
+    }
+
+    fun refresh(request: RefreshTokenRequest): AuthResponse {
+        val payload = jwtTokenService.verifyRefresh(request.refreshToken)
+            ?: throw UnauthorizedException("Сессия истекла, войдите заново")
+
+        val user = userRepository.findById(payload.userId)
+            ?: throw UnauthorizedException("Пользователь не найден")
+
+        return authResponse(user)
+    }
+
+    private fun authResponse(user: com.example.domain.model.User): AuthResponse {
+        val accessToken = jwtTokenService.generateAccess(user.id, user.role)
+        val refreshToken = jwtTokenService.generateRefresh(user.id, user.role)
+        return AuthResponse(
+            token = accessToken,
+            accessToken = accessToken,
+            refreshToken = refreshToken,
+            user = user
+        )
     }
 }
