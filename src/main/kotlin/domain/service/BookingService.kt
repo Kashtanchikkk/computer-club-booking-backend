@@ -2,12 +2,15 @@ package com.example.domain.service
 
 import com.example.data.repository.BookingRepository
 import com.example.data.repository.SeatRepository
+import com.example.domain.error.BadRequestException
 import com.example.domain.error.ConflictException
 import com.example.domain.error.NotFoundException
 import com.example.domain.model.Booking
+import com.example.domain.model.BookingStatus
 import com.example.domain.validation.BookingValidator
 import com.example.presentation.dto.CreateBookingRequest
 import java.time.Duration
+import java.time.LocalDateTime
 
 class BookingService(
     private val bookingRepository: BookingRepository,
@@ -43,9 +46,25 @@ class BookingService(
         bookingRepository.findAll()
 
     fun cancelBooking(bookingId: Int, userId: Int, role: String) {
+        val booking = bookingRepository.findByIdForUser(bookingId, userId, role)
+            ?: throw NotFoundException("Бронь не найдена")
+
+        if (booking.status != BookingStatus.Cancelled.value) {
+            val startTime = LocalDateTime.parse(booking.startTime)
+            val cancelDeadline = startTime.minusHours(CANCEL_LIMIT_HOURS)
+
+            if (cancelDeadline.isBefore(LocalDateTime.now())) {
+                throw BadRequestException("Бронь можно отменить не позднее чем за 4 часа до начала")
+            }
+        }
+
         val cancelled = bookingRepository.cancel(bookingId, userId, role)
         if (!cancelled) {
             throw NotFoundException("Бронь не найдена")
         }
+    }
+
+    private companion object {
+        const val CANCEL_LIMIT_HOURS = 4L
     }
 }
