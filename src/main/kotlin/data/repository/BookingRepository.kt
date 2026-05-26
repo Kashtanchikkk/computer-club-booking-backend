@@ -3,6 +3,7 @@ package com.example.data.repository
 import com.example.data.db.BookingsTable
 import com.example.data.db.GamingSeatsTable
 import com.example.domain.model.Booking
+import com.example.domain.model.BookingStatus
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -15,7 +16,7 @@ class BookingRepository {
             .selectAll()
             .where {
                 (BookingsTable.seatId eq seatId) and
-                        (BookingsTable.status neq "cancelled") and
+                        (BookingsTable.status neq BookingStatus.Cancelled.value) and
                         (BookingsTable.startTime less end) and
                         (BookingsTable.endTime greater start)
             }
@@ -35,7 +36,7 @@ class BookingRepository {
             it[BookingsTable.seatId] = seatId
             it[BookingsTable.startTime] = start
             it[BookingsTable.endTime] = end
-            it[BookingsTable.status] = "confirmed"
+            it[BookingsTable.status] = BookingStatus.Confirmed.value
             it[BookingsTable.totalPrice] = totalPrice.toBigDecimal()
             it[BookingsTable.createdAt] = LocalDateTime.now()
         }[BookingsTable.id]
@@ -47,7 +48,7 @@ class BookingRepository {
             seatName = seatName,
             startTime = start.toString(),
             endTime = end.toString(),
-            status = "confirmed",
+            status = BookingStatus.Confirmed.value,
             totalPrice = totalPrice
         )
     }
@@ -67,6 +68,20 @@ class BookingRepository {
             .map { it.toBooking() }
     }
 
+    fun findByIdForUser(bookingId: Int, userId: Int, role: String): Booking? = transaction {
+        val condition = if (role == "admin") {
+            BookingsTable.id eq bookingId
+        } else {
+            (BookingsTable.id eq bookingId) and (BookingsTable.userId eq userId)
+        }
+
+        (BookingsTable innerJoin GamingSeatsTable)
+            .selectAll()
+            .where { condition }
+            .map { it.toBooking() }
+            .singleOrNull()
+    }
+
     fun cancel(bookingId: Int, userId: Int, role: String): Boolean = transaction {
         val condition = if (role == "admin") {
             BookingsTable.id eq bookingId
@@ -74,7 +89,7 @@ class BookingRepository {
             (BookingsTable.id eq bookingId) and (BookingsTable.userId eq userId)
         }
         BookingsTable.update({ condition }) {
-            it[status] = "cancelled"
+            it[status] = BookingStatus.Cancelled.value
         } > 0
     }
 
