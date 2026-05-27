@@ -18,3 +18,4 @@ jwt:
   issuer: "computer-club"
   audience: "computer-club-users"
   expiresInMs: 86400000
+  refreshExpiresInMs: 2592000000

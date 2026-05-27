@@ -1,7 +1,11 @@
 package com.example.plugins
 
 import com.example.data.db.BookingsTable
+import com.example.data.db.ComputerClubsTable
+import com.example.data.db.DatabaseSeeder
 import com.example.data.db.GamingSeatsTable
+import com.example.data.db.SeatLayoutsTable
+import com.example.data.db.SeatTypesTable
 import com.example.data.db.UsersTable
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
@@ -28,7 +32,15 @@ fun Application.configureExposed() {
     Database.connect(dataSource)
 
     transaction {
-        SchemaUtils.create(UsersTable, GamingSeatsTable, BookingsTable)
+        SchemaUtils.createMissingTablesAndColumns(
+            UsersTable,
+            ComputerClubsTable,
+            SeatTypesTable,
+            GamingSeatsTable,
+            SeatLayoutsTable,
+            BookingsTable
+        )
+        DatabaseSeeder.seedInitialData()
     }
 
     log.info("Database connected!")
