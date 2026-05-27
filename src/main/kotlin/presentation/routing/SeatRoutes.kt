@@ -13,7 +13,13 @@ fun Route.seatRoutes(seatService: SeatService) {
     authenticate("auth-jwt") {
 
         get("/seats") {
-            call.respond(seatService.findAll())
+            val clubId = call.request.queryParameters["clubId"]?.toIntOrNull()
+            val typeId = call.request.queryParameters["typeId"]?.toIntOrNull()
+            call.respond(seatService.findAll(clubId, typeId))
+        }
+
+        get("/seat-types") {
+            call.respond(seatService.findTypes())
         }
 
         get("/seats/{id}") {
