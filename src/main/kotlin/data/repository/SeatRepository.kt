@@ -45,6 +45,10 @@ class SeatRepository {
             .singleOrNull()
     }
 
+    fun findById(id: Int): Seat? = transaction {
+        findByIdInCurrentTransaction(id)
+    }
+
     fun create(
         clubId: Int,
         typeId: Int,
@@ -84,6 +88,29 @@ class SeatRepository {
             it[isActive] = false
         } > 0
     }
+
+    fun updateName(id: Int, name: String): Seat? = transaction {
+        val updated = GamingSeatsTable.update({ GamingSeatsTable.id eq id }) {
+            it[GamingSeatsTable.name] = name
+        } > 0
+
+        if (updated) findByIdInCurrentTransaction(id) else null
+    }
+
+    fun updateStatus(id: Int, isActive: Boolean): Seat? = transaction {
+        val updated = GamingSeatsTable.update({ GamingSeatsTable.id eq id }) {
+            it[GamingSeatsTable.isActive] = isActive
+        } > 0
+
+        if (updated) findByIdInCurrentTransaction(id) else null
+    }
+
+    private fun findByIdInCurrentTransaction(id: Int): Seat? =
+        seatsWithTypes()
+            .selectAll()
+            .where { GamingSeatsTable.id eq id }
+            .map { it.toSeat() }
+            .singleOrNull()
 
     private fun ResultRow.toSeat() = Seat(
         id = this[GamingSeatsTable.id],

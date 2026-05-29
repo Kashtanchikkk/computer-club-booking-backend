@@ -36,5 +36,15 @@ fun Route.bookingRoutes(bookingService: BookingService) {
             if (!call.requireAdmin()) return@get
             call.respond(bookingService.findAllBookings())
         }
+
+        delete("/admin/bookings/{id}") {
+            if (!call.requireAdmin()) return@delete
+            val userId = call.userId()
+            val role = call.userRole()
+            val bookingId = call.parameters["id"]?.toIntOrNull()
+                ?: return@delete call.respond(HttpStatusCode.BadRequest, "Неверный id")
+            bookingService.cancelBooking(bookingId, userId, role)
+            call.respond(HttpStatusCode.OK)
+        }
     }
 }

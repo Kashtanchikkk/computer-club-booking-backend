@@ -49,7 +49,7 @@ class BookingService(
         val booking = bookingRepository.findByIdForUser(bookingId, userId, role)
             ?: throw NotFoundException("Бронь не найдена")
 
-        if (booking.status != BookingStatus.Cancelled.value) {
+        if (role != ADMIN_ROLE && booking.status != BookingStatus.Cancelled.value) {
             val startTime = LocalDateTime.parse(booking.startTime)
             val cancelDeadline = startTime.minusHours(CANCEL_LIMIT_HOURS)
 
@@ -65,6 +65,7 @@ class BookingService(
     }
 
     private companion object {
+        const val ADMIN_ROLE = "admin"
         const val CANCEL_LIMIT_HOURS = 4L
     }
 }

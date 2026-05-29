@@ -6,6 +6,8 @@ import com.example.domain.model.Seat
 import com.example.domain.model.SeatType
 import com.example.domain.validation.SeatValidator
 import com.example.presentation.dto.CreateSeatRequest
+import com.example.presentation.dto.UpdateSeatNameRequest
+import com.example.presentation.dto.UpdateSeatStatusRequest
 
 class SeatService(
     private val seatRepository: SeatRepository
@@ -38,4 +40,13 @@ class SeatService(
             throw NotFoundException("Место не найдено")
         }
     }
+
+    fun updateName(id: Int, request: UpdateSeatNameRequest): Seat {
+        val name = request.name.trim()
+        SeatValidator.validateName(name)
+        return seatRepository.updateName(id, name) ?: throw NotFoundException("Место не найдено")
+    }
+
+    fun updateStatus(id: Int, request: UpdateSeatStatusRequest): Seat =
+        seatRepository.updateStatus(id, request.isActive) ?: throw NotFoundException("Место не найдено")
 }
