@@ -17,6 +17,7 @@ class SeatLayoutRepository {
 
     private fun ResultRow.toResponse() = SeatLayoutResponse(
         id = this[SeatLayoutsTable.id],
+        seatId = this[SeatLayoutsTable.seatId],
         label = this[SeatLayoutsTable.label],
         room = this[SeatLayoutsTable.room],
         x = this[SeatLayoutsTable.x],

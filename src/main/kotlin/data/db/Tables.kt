@@ -48,6 +48,7 @@ object GamingSeatsTable : Table("gaming_seats") {
 
 object SeatLayoutsTable : Table("seat_layouts") {
     val id = varchar("id", 50)
+    val seatId = optReference("seat_id", GamingSeatsTable.id).uniqueIndex()
     val label = varchar("label", 100)
     val room = varchar("room", 100)
     val x = integer("x")

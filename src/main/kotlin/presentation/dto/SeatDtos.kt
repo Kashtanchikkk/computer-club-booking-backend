@@ -12,8 +12,19 @@ data class CreateSeatRequest(
 )
 
 @Serializable
+data class UpdateSeatNameRequest(
+    val name: String
+)
+
+@Serializable
+data class UpdateSeatStatusRequest(
+    val isActive: Boolean
+)
+
+@Serializable
 data class SeatLayoutResponse(
     val id: String,
+    val seatId: Int?,
     val label: String,
     val room: String,
     val x: Int,
