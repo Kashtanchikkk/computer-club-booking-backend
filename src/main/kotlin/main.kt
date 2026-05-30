@@ -2,17 +2,17 @@ package com.example
 
 import com.example.data.repository.ClubRepository
 import com.example.data.repository.BookingRepository
+import com.example.data.repository.MapObjectRepository
 import com.example.data.repository.SeatRepository
-import com.example.data.repository.SeatLayoutRepository
 import com.example.data.repository.UserRepository
 import com.example.domain.service.ClubService
 import com.example.domain.error.NotFoundException
 import com.example.domain.service.AuthService
 import com.example.domain.service.BookingService
 import com.example.domain.service.JwtTokenService
+import com.example.domain.service.MapObjectService
 import com.example.domain.service.PasswordHasher
 import com.example.domain.service.SeatService
-import com.example.domain.service.SeatLayoutService
 import com.example.plugins.configureErrorHandling
 import com.example.plugins.configureExposed
 import com.example.plugins.configureSecurity
@@ -20,8 +20,8 @@ import com.example.plugins.configureSerialization
 import com.example.presentation.routing.authRoutes
 import com.example.presentation.routing.bookingRoutes
 import com.example.presentation.routing.clubRoutes
+import com.example.presentation.routing.mapObjectRoutes
 import com.example.presentation.routing.seatRoutes
-import com.example.presentation.routing.seatLayoutRoutes
 import com.example.presentation.routing.userId
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -47,13 +47,13 @@ fun Application.module() {
     val userRepository = UserRepository()
     val clubRepository = ClubRepository()
     val seatRepository = SeatRepository()
-    val seatLayoutRepository = SeatLayoutRepository()
+    val mapObjectRepository = MapObjectRepository()
     val bookingRepository = BookingRepository()
     val tokenService = JwtTokenService(secret, issuer, audience, accessExpiresIn, refreshExpiresIn)
     val authService = AuthService(userRepository, PasswordHasher(), tokenService)
     val clubService = ClubService(clubRepository)
     val seatService = SeatService(seatRepository)
-    val seatLayoutService = SeatLayoutService(seatLayoutRepository)
+    val mapObjectService = MapObjectService(mapObjectRepository)
     val bookingService = BookingService(bookingRepository, seatRepository)
 
     routing {
@@ -64,7 +64,7 @@ fun Application.module() {
         authRoutes(authService)
         clubRoutes(clubService)
         seatRoutes(seatService)
-        seatLayoutRoutes(seatLayoutService)
+        mapObjectRoutes(mapObjectService)
         bookingRoutes(bookingService)
 
         authenticate("auth-jwt") {

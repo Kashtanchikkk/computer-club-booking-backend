@@ -46,17 +46,16 @@ object GamingSeatsTable : Table("gaming_seats") {
     override val primaryKey = PrimaryKey(id)
 }
 
-object SeatLayoutsTable : Table("seat_layouts") {
-    val id = varchar("id", 50)
-    val seatId = optReference("seat_id", GamingSeatsTable.id).uniqueIndex()
-    val label = varchar("label", 100)
-    val room = varchar("room", 100)
+object MapObjectsTable : Table("map_objects") {
+    val id = long("id").autoIncrement()
+    val clubId = long("club_id").index()
+    val type = varchar("type", 20).index()
+    val title = varchar("title", 100).nullable()
     val x = integer("x")
     val y = integer("y")
     val width = integer("width")
     val height = integer("height")
-    val color = varchar("color", 20)
-    val displayText = varchar("display_text", 50)
+    val seatId = long("seat_id").nullable().index()
 
     override val primaryKey = PrimaryKey(id)
 }

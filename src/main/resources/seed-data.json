@@ -56,7 +56,7 @@
       "seats": ["PS5-1", "PS5-2"]
     }
   ],
-  "seatLayouts": [
+  "seatMapObjects": [
     { "id": "D1-1", "label": "Duo 1 · D1-1", "room": "комната для двух игроков", "x": 470, "y": 70, "width": 50, "height": 42, "color": "#BDEBFF", "displayText": "D1-1" },
     { "id": "D1-2", "label": "Duo 1 · D1-2", "room": "комната для двух игроков", "x": 535, "y": 70, "width": 50, "height": 42, "color": "#BDEBFF", "displayText": "D1-2" },
     { "id": "D2-1", "label": "Duo 2 · D2-1", "room": "комната для двух игроков", "x": 650, "y": 70, "width": 50, "height": 42, "color": "#BDEBFF", "displayText": "D2-1" },

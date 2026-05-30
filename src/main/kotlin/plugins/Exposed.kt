@@ -4,7 +4,7 @@ import com.example.data.db.BookingsTable
 import com.example.data.db.ComputerClubsTable
 import com.example.data.db.DatabaseSeeder
 import com.example.data.db.GamingSeatsTable
-import com.example.data.db.SeatLayoutsTable
+import com.example.data.db.MapObjectsTable
 import com.example.data.db.SeatTypesTable
 import com.example.data.db.UsersTable
 import com.zaxxer.hikari.HikariConfig
@@ -37,7 +37,7 @@ fun Application.configureExposed() {
             ComputerClubsTable,
             SeatTypesTable,
             GamingSeatsTable,
-            SeatLayoutsTable,
+            MapObjectsTable,
             BookingsTable
         )
         DatabaseSeeder.seedInitialData()

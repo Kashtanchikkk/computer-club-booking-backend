@@ -7,6 +7,7 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.batchInsert
 import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.or
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.update
 
@@ -20,7 +21,12 @@ object DatabaseSeeder {
         val clubId = seedClub(seedData.club)
         val activeTypeIds = seedSeats(clubId, seedData.seatTypes)
         deactivateSeatsForRemovedTypes(clubId, activeTypeIds)
-        seedSeatLayouts(seedData.seatLayouts)
+        seedMapObjects(clubId, seedData.seatMapObjects)
+    }
+
+    fun seedMapObjectsForClub(clubId: Long) {
+        val seedData = loadSeedData()
+        seedMapObjects(clubId.toInt(), seedData.seatMapObjects)
     }
 
     private fun loadSeedData(): SeedData {
@@ -137,60 +143,113 @@ object DatabaseSeeder {
             }
     }
 
-    private fun seedSeatLayouts(layouts: List<SeatLayoutSeed>) {
-        val seatIdsByName = GamingSeatsTable
-            .selectAll()
-            .associate { it[GamingSeatsTable.name] to it[GamingSeatsTable.id] }
-        val existingLayouts = SeatLayoutsTable
-            .selectAll()
-            .associateBy { it[SeatLayoutsTable.id] }
-        val missingLayouts = layouts.filterNot { it.id in existingLayouts }
+    private fun seedMapObjects(clubId: Int, layouts: List<SeatMapObjectSeed>) {
+        seedStaticMapObjects(clubId)
+        seedSeatMapObjects(clubId, layouts)
+    }
 
-        layouts.forEach { layout ->
-            val seatId = seatIdsByName.getValue(layout.seatName)
-            val existingLayout = existingLayouts[layout.id]
-
-            if (existingLayout != null && existingLayout.differsFrom(layout, seatId)) {
-                SeatLayoutsTable.update({ SeatLayoutsTable.id eq layout.id }) {
-                    it[SeatLayoutsTable.seatId] = seatId
-                    it[label] = layout.label
-                    it[room] = layout.room
-                    it[x] = layout.x
-                    it[y] = layout.y
-                    it[width] = layout.width
-                    it[height] = layout.height
-                    it[color] = layout.color
-                    it[displayText] = layout.displayText
-                }
+    private fun seedStaticMapObjects(clubId: Int) {
+        val clubIdValue = clubId.toLong()
+        val existingObjects = MapObjectsTable
+            .selectAll()
+            .where {
+                (MapObjectsTable.clubId eq clubIdValue) and
+                    ((MapObjectsTable.type eq MapObjectSeedType.ROOM.name) or (MapObjectsTable.type eq MapObjectSeedType.WALL.name))
             }
+            .toList()
+
+        val missingObjects = STATIC_MAP_OBJECTS.filterNot { seedObject ->
+            existingObjects.any { it.matches(seedObject, clubIdValue) }
         }
 
-        if (missingLayouts.isNotEmpty()) {
-            SeatLayoutsTable.batchInsert(missingLayouts) { layout ->
-                this[SeatLayoutsTable.id] = layout.id
-                this[SeatLayoutsTable.seatId] = seatIdsByName.getValue(layout.seatName)
-                this[SeatLayoutsTable.label] = layout.label
-                this[SeatLayoutsTable.room] = layout.room
-                this[SeatLayoutsTable.x] = layout.x
-                this[SeatLayoutsTable.y] = layout.y
-                this[SeatLayoutsTable.width] = layout.width
-                this[SeatLayoutsTable.height] = layout.height
-                this[SeatLayoutsTable.color] = layout.color
-                this[SeatLayoutsTable.displayText] = layout.displayText
+        if (missingObjects.isNotEmpty()) {
+            MapObjectsTable.batchInsert(missingObjects) { mapObject ->
+                this[MapObjectsTable.clubId] = clubIdValue
+                this[MapObjectsTable.type] = mapObject.type.name
+                this[MapObjectsTable.title] = mapObject.title
+                this[MapObjectsTable.x] = mapObject.x
+                this[MapObjectsTable.y] = mapObject.y
+                this[MapObjectsTable.width] = mapObject.width
+                this[MapObjectsTable.height] = mapObject.height
+                this[MapObjectsTable.seatId] = null
             }
         }
     }
 
-    private fun ResultRow.differsFrom(layout: SeatLayoutSeed, seatId: Int): Boolean =
-        this[SeatLayoutsTable.seatId] != seatId ||
-            this[SeatLayoutsTable.label] != layout.label ||
-            this[SeatLayoutsTable.room] != layout.room ||
-            this[SeatLayoutsTable.x] != layout.x ||
-            this[SeatLayoutsTable.y] != layout.y ||
-            this[SeatLayoutsTable.width] != layout.width ||
-            this[SeatLayoutsTable.height] != layout.height ||
-            this[SeatLayoutsTable.color] != layout.color ||
-            this[SeatLayoutsTable.displayText] != layout.displayText
+    private fun seedSeatMapObjects(clubId: Int, layouts: List<SeatMapObjectSeed>) {
+        val seatIdsByName = GamingSeatsTable
+            .selectAll()
+            .associate { it[GamingSeatsTable.name] to it[GamingSeatsTable.id] }
+        val existingSeatObjectsBySeatId = MapObjectsTable
+            .selectAll()
+            .where { (MapObjectsTable.clubId eq clubId.toLong()) and (MapObjectsTable.type eq MapObjectSeedType.SEAT.name) }
+            .associateBy { it[MapObjectsTable.seatId] }
+        val existingSeatObjectsBySeedKey = MapObjectsTable
+            .selectAll()
+            .where { (MapObjectsTable.clubId eq clubId.toLong()) and (MapObjectsTable.type eq MapObjectSeedType.SEAT.name) }
+            .associateBy { it.seedKey() }
+
+        layouts.forEach { layout ->
+            val seatId = seatIdsByName.getValue(layout.seatName)
+            val existingObject = existingSeatObjectsBySeatId[seatId.toLong()]
+                ?: existingSeatObjectsBySeedKey[layout.seedKey()]
+
+            if (existingObject == null) {
+                MapObjectsTable.insert {
+                    it[MapObjectsTable.clubId] = clubId.toLong()
+                    it[MapObjectsTable.type] = MapObjectSeedType.SEAT.name
+                    it[MapObjectsTable.title] = layout.displayText
+                    it[MapObjectsTable.x] = layout.x
+                    it[MapObjectsTable.y] = layout.y
+                    it[MapObjectsTable.width] = layout.width
+                    it[MapObjectsTable.height] = layout.height
+                    it[MapObjectsTable.seatId] = seatId.toLong()
+                }
+            } else if (existingObject.differsFrom(layout, clubId, seatId)) {
+                MapObjectsTable.update({ MapObjectsTable.id eq existingObject[MapObjectsTable.id] }) {
+                    it[MapObjectsTable.clubId] = clubId.toLong()
+                    it[MapObjectsTable.type] = MapObjectSeedType.SEAT.name
+                    it[MapObjectsTable.title] = layout.displayText
+                    it[MapObjectsTable.x] = layout.x
+                    it[MapObjectsTable.y] = layout.y
+                    it[MapObjectsTable.width] = layout.width
+                    it[MapObjectsTable.height] = layout.height
+                    it[MapObjectsTable.seatId] = seatId.toLong()
+                }
+            }
+        }
+    }
+
+    private fun ResultRow.matches(mapObject: StaticMapObjectSeed, clubId: Long): Boolean =
+        this[MapObjectsTable.clubId] == clubId &&
+            this[MapObjectsTable.type] == mapObject.type.name &&
+            this[MapObjectsTable.title] == mapObject.title &&
+            this[MapObjectsTable.x] == mapObject.x &&
+            this[MapObjectsTable.y] == mapObject.y &&
+            this[MapObjectsTable.width] == mapObject.width &&
+            this[MapObjectsTable.height] == mapObject.height
+
+    private fun ResultRow.differsFrom(layout: SeatMapObjectSeed, clubId: Int, seatId: Int): Boolean =
+        this[MapObjectsTable.clubId] != clubId.toLong() ||
+            this[MapObjectsTable.type] != MapObjectSeedType.SEAT.name ||
+            this[MapObjectsTable.title] != layout.displayText ||
+            this[MapObjectsTable.x] != layout.x ||
+            this[MapObjectsTable.y] != layout.y ||
+            this[MapObjectsTable.width] != layout.width ||
+            this[MapObjectsTable.height] != layout.height ||
+            this[MapObjectsTable.seatId] != seatId.toLong()
+
+    private fun ResultRow.seedKey(): String =
+        listOf(
+            this[MapObjectsTable.title].orEmpty(),
+            this[MapObjectsTable.x],
+            this[MapObjectsTable.y],
+            this[MapObjectsTable.width],
+            this[MapObjectsTable.height]
+        ).joinToString(separator = "|")
+
+    private fun SeatMapObjectSeed.seedKey(): String =
+        listOf(displayText, x, y, width, height).joinToString(separator = "|")
 
     private fun ResultRow.differsFrom(type: SeatTypeSeed): Boolean =
         this[SeatTypesTable.name] != type.name ||
@@ -201,13 +260,52 @@ object DatabaseSeeder {
             this[SeatTypesTable.monitor] != type.monitor
 
     private const val SEED_DATA_FILE = "seed-data.json"
+
+    private val STATIC_MAP_OBJECTS = listOf(
+        StaticMapObjectSeed(MapObjectSeedType.ROOM, "-> ВХОД", 8, 8, 220, 220),
+        StaticMapObjectSeed(MapObjectSeedType.ROOM, "СТОЙКА\nАДМИНИСТРАТОРА", 228, 8, 210, 150),
+        StaticMapObjectSeed(MapObjectSeedType.ROOM, "DUO 1", 438, 8, 170, 150),
+        StaticMapObjectSeed(MapObjectSeedType.ROOM, "DUO 2", 608, 8, 165, 150),
+        StaticMapObjectSeed(MapObjectSeedType.ROOM, "TRIO", 773, 8, 265, 150),
+        StaticMapObjectSeed(MapObjectSeedType.ROOM, "SQUAD", 1038, 8, 105, 220),
+        StaticMapObjectSeed(MapObjectSeedType.ROOM, "BOOTCAMP 1", 1143, 8, 165, 320),
+        StaticMapObjectSeed(MapObjectSeedType.ROOM, "SQUAD", 122, 238, 110, 222),
+        StaticMapObjectSeed(MapObjectSeedType.ROOM, "PS5 ROOM 1", 232, 238, 165, 210),
+        StaticMapObjectSeed(MapObjectSeedType.ROOM, "STANDARD 1", 397, 218, 350, 165),
+        StaticMapObjectSeed(MapObjectSeedType.WALL, null, 440, 328, 280, 6),
+        StaticMapObjectSeed(MapObjectSeedType.ROOM, "STANDARD 2", 397, 388, 350, 170),
+        StaticMapObjectSeed(MapObjectSeedType.WALL, null, 440, 498, 280, 6),
+        StaticMapObjectSeed(MapObjectSeedType.ROOM, "BOOTCAMP 2", 887, 268, 130, 330),
+        StaticMapObjectSeed(MapObjectSeedType.ROOM, "VIP ROOM", 1017, 335, 115, 190),
+        StaticMapObjectSeed(MapObjectSeedType.ROOM, "PS5 ROOM 2", 1132, 335, 176, 190),
+        StaticMapObjectSeed(MapObjectSeedType.ROOM, "WC", 1017, 525, 291, 82),
+        StaticMapObjectSeed(MapObjectSeedType.ROOM, "DUO 3", 8, 525, 165, 120),
+        StaticMapObjectSeed(MapObjectSeedType.ROOM, "DUO 4", 173, 525, 165, 120),
+        StaticMapObjectSeed(MapObjectSeedType.ROOM, "STANDARD 3", 887, 625, 260, 270),
+        StaticMapObjectSeed(MapObjectSeedType.ROOM, "TRIO", 1147, 625, 220, 155)
+    )
 }
+
+private enum class MapObjectSeedType {
+    ROOM,
+    WALL,
+    SEAT
+}
+
+private data class StaticMapObjectSeed(
+    val type: MapObjectSeedType,
+    val title: String?,
+    val x: Int,
+    val y: Int,
+    val width: Int,
+    val height: Int
+)
 
 @Serializable
 private data class SeedData(
     val club: ClubSeed,
     val seatTypes: List<SeatTypeSeed>,
-    val seatLayouts: List<SeatLayoutSeed>
+    val seatMapObjects: List<SeatMapObjectSeed>
 )
 
 @Serializable
@@ -229,7 +327,7 @@ private data class SeatTypeSeed(
 )
 
 @Serializable
-private data class SeatLayoutSeed(
+private data class SeatMapObjectSeed(
     val id: String,
     val label: String,
     val room: String,
