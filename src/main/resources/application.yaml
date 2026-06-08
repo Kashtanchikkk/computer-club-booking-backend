@@ -3,7 +3,19 @@ ktor:
     port: 8080
   application:
     modules:
-      - com.example.SerializationKt.configureSerialization
-      - com.example.SecurityKt.configureSecurity
-      - com.example.ExposedKt.configureExposed
-      - com.example.RoutingKt.configureRouting
+      - com.example.MainKt.module
+
+database:
+  url: "jdbc:postgresql://localhost:5432/computer_club"
+  driver: "org.postgresql.Driver"
+  user: "postgres"
+  password: "onep!ece"
+  maxPoolSize: 10
+  dropAndRecreate: false
+
+jwt:
+  secret: "your-super-secret-key-min-32-chars!!"
+  issuer: "computer-club"
+  audience: "computer-club-users"
+  expiresInMs: 86400000
+  refreshExpiresInMs: 2592000000

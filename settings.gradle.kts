@@ -1,4 +1,4 @@
-rootProject.name = "kcomputer-club-server"
+rootProject.name = "computer-club-server"
 
 pluginManagement {
     repositories {
